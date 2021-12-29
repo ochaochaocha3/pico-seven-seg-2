@@ -4,10 +4,15 @@
 #![no_std]
 #![no_main]
 
+use core::{borrow::Borrow, cell::RefCell};
+
+use cortex_m::interrupt;
+use cortex_m::interrupt::Mutex;
 use cortex_m_rt::entry;
 use defmt::*;
 use defmt_rtt as _;
 use embedded_hal::digital::v2::OutputPin;
+use embedded_time::duration::Extensions;
 use embedded_time::fixed_point::FixedPoint;
 use panic_probe as _;
 
@@ -18,12 +23,37 @@ use rp_pico as bsp;
 
 use bsp::hal::{
     clocks::{init_clocks_and_plls, Clock},
+    gpio::bank0::*,
+    gpio::pin::{Pin, PushPullOutput},
     pac,
     sio::Sio,
+    timer::Timer,
     watchdog::Watchdog,
 };
 
+use pico_seven_seg_2::{ElapsedFlag, SevenSegmentLeds};
 use seven_segment::SevenSegmentPins;
+
+type RPOutputPin<I> = Pin<I, PushPullOutput>;
+static SEVEN_SEG_LEDS: Mutex<
+    RefCell<
+        Option<
+            SevenSegmentLeds<
+                RPOutputPin<Gpio22>,
+                RPOutputPin<Gpio21>,
+                RPOutputPin<Gpio20>,
+                RPOutputPin<Gpio19>,
+                RPOutputPin<Gpio18>,
+                RPOutputPin<Gpio17>,
+                RPOutputPin<Gpio16>,
+                RPOutputPin<Gpio14>,
+                RPOutputPin<Gpio15>,
+            >,
+        >,
+    >,
+> = Mutex::new(RefCell::new(Option::None));
+
+static ELAPSED_1MS: Mutex<RefCell<Option<ElapsedFlag>>> = Mutex::new(RefCell::new(None));
 
 #[entry]
 fn main() -> ! {
@@ -67,21 +97,29 @@ fn main() -> ! {
         f: pins.gpio17.into_push_pull_output(),
         g: pins.gpio16.into_push_pull_output(),
     };
-    let mut seven_seg = seven_seg_pins.with_common_cathode();
+    let seven_seg = seven_seg_pins.with_common_cathode();
 
-    let mut seven_seg_drive_pin = pins.gpio15.into_push_pull_output();
-    seven_seg_drive_pin.set_low().unwrap();
+    let mut seven_seg_drive_pin1 = pins.gpio14.into_push_pull_output();
+    let mut seven_seg_drive_pin2 = pins.gpio15.into_push_pull_output();
 
+    seven_seg_drive_pin1.set_low().unwrap();
+    seven_seg_drive_pin2.set_low().unwrap();
+
+    let seven_seg_leds =
+        SevenSegmentLeds::new(seven_seg, seven_seg_drive_pin1, seven_seg_drive_pin2);
+
+    interrupt::free(|cs| {
+        SEVEN_SEG_LEDS.borrow(cs).replace(Some(seven_seg_leds));
+        ELAPSED_1MS.borrow(cs).replace(Some(ElapsedFlag::new()))
+    });
+
+    let mut alarm_0 = Timer::new(pac.TIMER, &mut pac.RESETS).alarm_0().unwrap();
+    alarm_0.schedule(250.microseconds()).unwrap();
+
+    let mut count_ms = 0u32;
     loop {
-        for n in 0u8..=9u8 {
-            led_pin.set_high().unwrap();
-            seven_seg_drive_pin.set_low().unwrap();
-            seven_seg.set(n).unwrap();
-            seven_seg_drive_pin.set_high().unwrap();
-            delay.delay_ms(125);
-
-            led_pin.set_low().unwrap();
-            delay.delay_ms(125);
-        }
+        let elapsed_1ms = interrupt::free(|cs| {
+            ELAPSED_1MS.borrow(cs).borrow().
+        });
     }
 }
