@@ -1,0 +1,19 @@
+{
+    // IntelliSense を使用して利用可能な属性を学べます。
+    // 既存の属性の説明をホバーして表示します。
+    // 詳細情報は次を確認してください: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "probe-rs-debug",
+            "request": "launch",
+            "name": "probe-rs Test",
+            "programBinary": "${workspaceFolder}/target/thumbv6m-none-eabi/debug/${workspaceFolderBasename}",
+            "chip": "rp2040",
+            "connectUnderReset": false,
+            "flashingEnabled": true,
+            "resetAfterFlashing": true,
+            "haltAfterReset": false
+        }
+    ]
+}
