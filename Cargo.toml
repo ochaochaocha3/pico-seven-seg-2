@@ -2,7 +2,7 @@
 authors = ["ocha"]
 edition = "2018"
 readme = "README.md"
-name = "pico-seven-seg-1"
+name = "pico-seven-seg-2"
 version = "0.1.0"
 resolver = "2"
 
