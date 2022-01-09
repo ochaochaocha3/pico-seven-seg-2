@@ -32,7 +32,7 @@ use bsp::hal::{
 
 use pac::interrupt;
 
-use pico_seven_seg_2::{ElapsedFlag, Led, SevenSegmentLeds};
+use pico_seven_seg_2::{ElapsedFlag, Led, LedWithPin, SevenSegmentLed2Digits};
 use seven_segment::SevenSegmentPins;
 
 type SharedObject<T> = Mutex<RefCell<Option<T>>>;
@@ -42,7 +42,7 @@ static ALARM_0: SharedObject<Alarm0> = Mutex::new(RefCell::new(None));
 
 type RPOutputPin<I> = Pin<I, PushPullOutput>;
 static SEVEN_SEG_LEDS: SharedObject<
-    SevenSegmentLeds<
+    SevenSegmentLed2Digits<
         RPOutputPin<Gpio22>,
         RPOutputPin<Gpio21>,
         RPOutputPin<Gpio20>,
@@ -96,7 +96,7 @@ fn main() -> ! {
         &mut pac.RESETS,
     );
 
-    let mut led = Led::new(pins.led.into_push_pull_output());
+    let mut led = LedWithPin::new(pins.led.into_push_pull_output());
 
     let seven_seg_pins = SevenSegmentPins {
         a: pins.gpio22.into_push_pull_output(),
@@ -116,7 +116,7 @@ fn main() -> ! {
     seven_seg_drive_pin2.set_low().unwrap();
 
     let mut seven_seg_leds =
-        SevenSegmentLeds::new(seven_seg, seven_seg_drive_pin1, seven_seg_drive_pin2);
+        SevenSegmentLed2Digits::new(seven_seg, seven_seg_drive_pin1, seven_seg_drive_pin2);
     let mut count = 0u8;
 
     seven_seg_leds.set_number(count);

@@ -5,6 +5,7 @@ use core::fmt::Debug;
 use embedded_hal::digital::v2::OutputPin;
 use seven_segment::{Cathode, SevenSegment};
 
+#[derive(Debug)]
 pub struct ElapsedFlag(bool);
 
 impl ElapsedFlag {
@@ -34,11 +35,12 @@ impl ElapsedFlag {
     }
 }
 
-pub struct Led<T> {
+#[derive(Debug)]
+pub struct LedWithPin<T> {
     pin: T,
 }
 
-impl<T> Led<T>
+impl<T> LedWithPin<T>
 where
     T: OutputPin,
     T::Error: Debug,
@@ -46,22 +48,34 @@ where
     pub fn new(pin: T) -> Self {
         Self { pin }
     }
+}
 
-    pub fn turn_on(&mut self) {
+pub trait Led {
+    fn turn_on(&mut self);
+    fn turn_off(&mut self);
+}
+
+impl<T> Led for LedWithPin<T>
+where
+    T: OutputPin,
+    T::Error: Debug,
+{
+    fn turn_on(&mut self) {
         self.pin.set_high().unwrap();
     }
 
-    pub fn turn_off(&mut self) {
+    fn turn_off(&mut self) {
         self.pin.set_low().unwrap();
     }
 }
 
-struct SevenSegDigit<T> {
+#[derive(Debug)]
+struct SevenSegDigitWithPin<T> {
     drive_pin: T,
     number: u8,
 }
 
-impl<T> SevenSegDigit<T>
+impl<T> SevenSegDigitWithPin<T>
 where
     T: OutputPin,
     T::Error: Debug,
@@ -74,14 +88,14 @@ where
     }
 }
 
-trait SevenSegDigitOp {
+trait SevenSegDigit {
     fn get_number(&self) -> u8;
     fn set_number(&mut self, number: u8);
     fn turn_on(&mut self);
     fn turn_off(&mut self);
 }
 
-impl<T> SevenSegDigitOp for SevenSegDigit<T>
+impl<T> SevenSegDigit for SevenSegDigitWithPin<T>
 where
     T: OutputPin,
     T::Error: Debug,
@@ -109,15 +123,15 @@ pub enum SevenSegDigitIndex {
     Digit2,
 }
 
-pub struct SevenSegmentLeds<A, B, C, D, E, F, G, DrivePin1, DrivePin2> {
+pub struct SevenSegmentLed2Digits<A, B, C, D, E, F, G, DrivePin1, DrivePin2> {
     seven_seg: SevenSegment<A, B, C, D, E, F, G, Cathode>,
-    digit_1: SevenSegDigit<DrivePin1>,
-    digit_2: SevenSegDigit<DrivePin2>,
+    digit_1: SevenSegDigitWithPin<DrivePin1>,
+    digit_2: SevenSegDigitWithPin<DrivePin2>,
     current_digit_index: SevenSegDigitIndex,
 }
 
 impl<A, B, C, D, E, F, G, DrivePin1, DrivePin2>
-    SevenSegmentLeds<A, B, C, D, E, F, G, DrivePin1, DrivePin2>
+    SevenSegmentLed2Digits<A, B, C, D, E, F, G, DrivePin1, DrivePin2>
 where
     A: OutputPin,
     A::Error: Debug,
@@ -138,8 +152,8 @@ where
     ) -> Self {
         Self {
             seven_seg,
-            digit_1: SevenSegDigit::new(drive_pin_1),
-            digit_2: SevenSegDigit::new(drive_pin_2),
+            digit_1: SevenSegDigitWithPin::new(drive_pin_1),
+            digit_2: SevenSegDigitWithPin::new(drive_pin_2),
             current_digit_index: SevenSegDigitIndex::Digit1,
         }
     }
@@ -162,31 +176,24 @@ where
 
         self.turn_off_all_digits();
 
-        {
-            let next_digit = self.get_digit(next_digit_index);
-            let next_number = next_digit.get_number();
-            self.seven_seg.set(next_number).unwrap();
-        }
-
-        {
-            let next_digit = self.get_mutable_digit(next_digit_index);
-            next_digit.turn_on();
-        }
+        let next_number = self.get_digit(next_digit_index).get_number();
+        self.seven_seg.set(next_number).unwrap();
+        self.get_mutable_digit(next_digit_index).turn_on();
 
         self.current_digit_index = next_digit_index;
     }
 
-    fn get_digit(&self, digit: SevenSegDigitIndex) -> &dyn SevenSegDigitOp {
+    fn get_digit(&self, digit: SevenSegDigitIndex) -> &dyn SevenSegDigit {
         match digit {
-            SevenSegDigitIndex::Digit1 => &self.digit_1 as &dyn SevenSegDigitOp,
-            SevenSegDigitIndex::Digit2 => &self.digit_2 as &dyn SevenSegDigitOp,
+            SevenSegDigitIndex::Digit1 => &self.digit_1 as &dyn SevenSegDigit,
+            SevenSegDigitIndex::Digit2 => &self.digit_2 as &dyn SevenSegDigit,
         }
     }
 
-    fn get_mutable_digit(&mut self, digit: SevenSegDigitIndex) -> &mut dyn SevenSegDigitOp {
+    fn get_mutable_digit(&mut self, digit: SevenSegDigitIndex) -> &mut dyn SevenSegDigit {
         match digit {
-            SevenSegDigitIndex::Digit1 => &mut self.digit_1 as &mut dyn SevenSegDigitOp,
-            SevenSegDigitIndex::Digit2 => &mut self.digit_2 as &mut dyn SevenSegDigitOp,
+            SevenSegDigitIndex::Digit1 => &mut self.digit_1 as &mut dyn SevenSegDigit,
+            SevenSegDigitIndex::Digit2 => &mut self.digit_2 as &mut dyn SevenSegDigit,
         }
     }
 }
