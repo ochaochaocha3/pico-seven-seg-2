@@ -176,22 +176,22 @@ where
 
         self.turn_off_all_digits();
 
-        let next_number = self.get_digit(next_digit_index).get_number();
-        self.seven_seg.set(next_number).unwrap();
+        let next_digit_number = self.get_digit(next_digit_index).get_number();
+        self.seven_seg.set(next_digit_number).unwrap();
         self.get_mutable_digit(next_digit_index).turn_on();
 
         self.current_digit_index = next_digit_index;
     }
 
-    fn get_digit(&self, digit: SevenSegDigitIndex) -> &dyn SevenSegDigit {
-        match digit {
+    fn get_digit(&self, index: SevenSegDigitIndex) -> &dyn SevenSegDigit {
+        match index {
             SevenSegDigitIndex::Digit1 => &self.digit_1 as &dyn SevenSegDigit,
             SevenSegDigitIndex::Digit2 => &self.digit_2 as &dyn SevenSegDigit,
         }
     }
 
-    fn get_mutable_digit(&mut self, digit: SevenSegDigitIndex) -> &mut dyn SevenSegDigit {
-        match digit {
+    fn get_mutable_digit(&mut self, index: SevenSegDigitIndex) -> &mut dyn SevenSegDigit {
+        match index {
             SevenSegDigitIndex::Digit1 => &mut self.digit_1 as &mut dyn SevenSegDigit,
             SevenSegDigitIndex::Digit2 => &mut self.digit_2 as &mut dyn SevenSegDigit,
         }
