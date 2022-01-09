@@ -34,16 +34,16 @@ impl ElapsedFlag {
     }
 }
 
-pub struct Led<Pin> {
-    pin: Pin,
+pub struct Led<T> {
+    pin: T,
 }
 
-impl<Pin> Led<Pin>
+impl<T> Led<T>
 where
-    Pin: OutputPin,
-    Pin::Error: Debug,
+    T: OutputPin,
+    T::Error: Debug,
 {
-    pub fn new(pin: Pin) -> Self {
+    pub fn new(pin: T) -> Self {
         Self { pin }
     }
 
@@ -56,17 +56,17 @@ where
     }
 }
 
-struct SevenSegDigit<DrivePin> {
-    drive_pin: DrivePin,
+struct SevenSegDigit<T> {
+    drive_pin: T,
     number: u8,
 }
 
-impl<DrivePin> SevenSegDigit<DrivePin>
+impl<T> SevenSegDigit<T>
 where
-    DrivePin: OutputPin,
-    DrivePin::Error: Debug,
+    T: OutputPin,
+    T::Error: Debug,
 {
-    pub fn new(drive_pin: DrivePin) -> Self {
+    pub fn new(drive_pin: T) -> Self {
         Self {
             drive_pin,
             number: 0u8,
@@ -81,10 +81,10 @@ trait SevenSegDigitOp {
     fn turn_off(&mut self);
 }
 
-impl<DrivePin> SevenSegDigitOp for SevenSegDigit<DrivePin>
+impl<T> SevenSegDigitOp for SevenSegDigit<T>
 where
-    DrivePin: OutputPin,
-    DrivePin::Error: Debug,
+    T: OutputPin,
+    T::Error: Debug,
 {
     fn get_number(&self) -> u8 {
         self.number
@@ -113,7 +113,7 @@ pub struct SevenSegmentLeds<A, B, C, D, E, F, G, DrivePin1, DrivePin2> {
     seven_seg: SevenSegment<A, B, C, D, E, F, G, Cathode>,
     digit_1: SevenSegDigit<DrivePin1>,
     digit_2: SevenSegDigit<DrivePin2>,
-    current_digit: SevenSegDigitIndex,
+    current_digit_index: SevenSegDigitIndex,
 }
 
 impl<A, B, C, D, E, F, G, DrivePin1, DrivePin2>
@@ -140,7 +140,7 @@ where
             seven_seg,
             digit_1: SevenSegDigit::new(drive_pin_1),
             digit_2: SevenSegDigit::new(drive_pin_2),
-            current_digit: SevenSegDigitIndex::Digit1,
+            current_digit_index: SevenSegDigitIndex::Digit1,
         }
     }
 
@@ -155,7 +155,7 @@ where
     }
 
     pub fn turn_on_next_digit(&mut self) {
-        let next_digit_index = match self.current_digit {
+        let next_digit_index = match self.current_digit_index {
             SevenSegDigitIndex::Digit1 => SevenSegDigitIndex::Digit2,
             SevenSegDigitIndex::Digit2 => SevenSegDigitIndex::Digit1,
         };
@@ -173,7 +173,7 @@ where
             next_digit.turn_on();
         }
 
-        self.current_digit = next_digit_index;
+        self.current_digit_index = next_digit_index;
     }
 
     fn get_digit(&self, digit: SevenSegDigitIndex) -> &dyn SevenSegDigitOp {
